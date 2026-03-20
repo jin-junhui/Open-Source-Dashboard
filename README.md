@@ -1,28 +1,32 @@
 # 开源活动仪表板
 
-一个专门用于监控和可视化Github Organization活动的数据仪表板系统。
+一个用于监控和可视化 GitHub Organization 活动的数据仪表板系统。
 
 ## 主要功能
 
 ### 数据采集与分析
+
 - **双管道数据采集**：Git 提交统计 + GitHub API 数据采集
-- **三级数据模型**：仓库 → SIG → 组织，支持灵活的查询和聚合
-- **贡献者追踪**：独立贡献者统计、排行榜、新贡献者识别
+- **三级数据模型**：仓库 -> SIG -> 组织，支持灵活查询和聚合
+- **贡献者追踪**：贡献者统计、排行榜、新贡献者识别
 
 ### 数据可视化
-- **组织总览卡片**：展示最新活动快照（PR、Issue、Commit、代码行数等）
-- **趋势图表**：使用 ECharts 展示多维度活动趋势
-- **多 SIG 趋势对比**：可同时选择多个 SIG 进行趋势对比
-- **贡献者排行榜**：头像、用户名、活跃天数、贡献统计
 
-### 高级分析功能
-- **日/周/月视图切换**：支持不同粒度的数据聚合查看
-- **增长分析报告**：环比增长率分析，多维度指标对比
-- **数据导出**：支持 CSV、Excel、PDF 三种格式导出
+- **组织总览卡片**：展示 PR、Issue、Commit、代码行数等活动快照
+- **趋势图表**：使用 ECharts 展示多维度活动趋势
+- **多 SIG 趋势对比**：支持同时选择多个 SIG 进行对比
+- **贡献者排行榜**：展示头像、用户名、活跃天数与贡献统计
+
+### 高级分析能力
+
+- **日 / 周 / 月视图切换**：支持不同粒度的数据聚合查看
+- **增长分析报告**：支持多维指标的环比分析
+- **数据导出**：支持 CSV、Excel、PDF 三种格式
 
 ### 用户体验
+
 - 加载骨架屏、错误边界、Toast 通知
-- Redis 缓存加速（10分钟 TTL）
+- Redis 缓存加速
 - 响应式设计
 
 ## 技术栈
@@ -39,126 +43,119 @@
 
 ## 目录结构
 
-```
+```text
 oss-dashboard/
-├── backend/                  # Node.js/Express 后端服务
-│   ├── server.js             # 主服务器文件
-│   ├── run_graphql_backfill.js  # 数据回填脚本
-│   └── .env.example          # 环境变量示例
-├── frontend/                 # React/Vite 前端应用
+├── backend/                    # Node.js/Express 后端服务
+│   ├── server.js               # 主服务器文件
+│   ├── run_graphql_backfill.js # 数据回填脚本
+│   ├── run_reaggregation.js    # 重聚合脚本
+│   └── .env.example            # 环境变量示例
+├── frontend/                   # React/Vite 前端应用
 │   ├── src/
-│   │   ├── App.jsx           # 主应用组件
-│   │   ├── components/       # UI 组件
-│   │   └── services/         # API 服务层
+│   │   ├── App.jsx
+│   │   ├── components/
+│   │   └── services/
 │   └── vite.config.js
-├── db/                       # 数据库脚本
-│   ├── schema.sql            # 核心表结构定义
-│   ├── seed.sql              # SIG 和仓库初始数据
-│   ├── contributors_schema.sql  # 贡献者表结构
-│   └── views.sql             # 物化视图（可选）
-├── repos/                    # 本地 Git 仓库存储目录
-└── repos.csv                 # SIG 与仓库映射关系文件
+├── db/                         # 数据库脚本
+│   ├── schema.sql
+│   ├── seed.sql
+│   ├── contributors_schema.sql
+│   └── views.sql
+├── repos/                      # 本地 Git 仓库存储目录
+└── repos.csv                   # SIG 与仓库映射关系文件
 ```
 
-## 部署指南
+## 环境要求
 
-### 1. 环境准备
+在本地运行前，请先准备以下依赖：
 
-需要安装并运行以下服务：
-- **Node.js** (v18+)
-- **PostgreSQL** 数据库服务
-- **Redis** 缓存服务
-- **Git** 命令行工具
+- Node.js 18+
+- PostgreSQL
+- Redis
+- Git
 
-### 2. 数据库初始化
+## 快速开始
+
+### 1. 初始化数据库
 
 ```bash
-# 创建数据库
 createdb oss_dashboard
-
-# 初始化核心表结构
 psql -d oss_dashboard -f db/schema.sql
-
-# 填充 SIG 和仓库数据
 psql -d oss_dashboard -f db/seed.sql
-
-# 创建贡献者相关表
 psql -d oss_dashboard -f db/contributors_schema.sql
+```
 
-# (可选) 创建物化视图以提升性能
+如需启用可选物化视图：
+
+```bash
 psql -d oss_dashboard -f db/views.sql
 ```
 
-### 3. 后端配置与启动
+### 2. 配置并启动后端
 
 ```bash
 cd backend
-
-# 复制并编辑环境变量
 cp .env.example .env
-# 编辑 .env 文件，配置：
-# - GITHUB_TOKEN: GitHub Personal Access Token
-# - DB_* : PostgreSQL 连接信息
-# - REDIS_* : Redis 连接信息
-
-# 安装依赖
 npm install
-
-# 启动服务
 npm start
 ```
 
-> **注意**: 首次启动会自动触发历史数据回填，由于 API 延迟机制，回填过程会较慢（2-4小时）。
+需要在 `backend/.env` 中配置数据库、Redis 与 GitHub Token。
 
-### 4. 数据回填（可选）
-
-如需手动回填历史数据：
-
-```bash
-cd backend
-
-# 回填最近 30 天的数据（包含贡献者数据）
-node run_graphql_backfill.js 30
-
-# 也可以指定其他天数
-node run_graphql_backfill.js 7    # 7天
-node run_graphql_backfill.js 60   # 60天
-```
-
-### 5. 前端启动
+### 3. 启动前端
 
 ```bash
 cd frontend
-
-# 安装依赖
 npm install
-
-# 启动开发服务器
 npm run dev
 ```
 
-访问 http://localhost:5173 查看仪表板。
+启动后可访问 `http://localhost:5173` 查看仪表板。
 
-## API 接口
+## 常用命令
+
+### 后端
+
+```bash
+cd backend
+npm install
+npm start
+node run_graphql_backfill.js 30
+node run_reaggregation.js
+node backfill_single_repo.js <repo-name>
+```
+
+### 前端
+
+```bash
+cd frontend
+npm install
+npm run dev
+npm run build
+npm run preview
+npm run lint
+```
+
+## API 概览
 
 ### 核心接口
 
 | 接口 | 描述 |
 |------|------|
 | `GET /api/v1/organization/sigs` | 获取所有 SIG 列表 |
-| `GET /api/v1/organization/timeseries` | 组织时间序列数据 |
-| `GET /api/v1/sig/:sigId/timeseries` | SIG 时间序列数据 |
-| `GET /api/v1/organization/latest-activity` | 最新活动列表（分页） |
+| `GET /api/v1/organization/timeseries` | 获取组织时间序列数据 |
+| `GET /api/v1/sig/:sigId/timeseries` | 获取 SIG 时间序列数据 |
+| `GET /api/v1/organization/latest-activity` | 获取最新活动列表 |
 
-### 高级分析接口
+### 分析接口
 
 | 接口 | 描述 |
 |------|------|
-| `GET /api/v1/organization/timeseries/aggregated` | 组织聚合时间序列（支持日/周/月粒度） |
-| `GET /api/v1/sig/:sigId/timeseries/aggregated` | SIG 聚合时间序列 |
-| `GET /api/v1/sigs/compare` | 多 SIG 对比数据 |
-| `GET /api/v1/organization/growth-analysis` | 组织增长分析 |
-| `GET /api/v1/sig/:sigId/growth-analysis` | SIG 增长分析 |
+| `GET /api/v1/organization/timeseries/aggregated` | 获取组织聚合时间序列 |
+| `GET /api/v1/sig/:sigId/timeseries/aggregated` | 获取 SIG 聚合时间序列 |
+| `GET /api/v1/sigs/compare` | 获取多 SIG 对比数据 |
+| `GET /api/v1/organization/growth-analysis` | 获取组织增长分析 |
+| `GET /api/v1/sig/:sigId/growth-analysis` | 获取 SIG 增长分析 |
 
 ### 贡献者接口
 
@@ -172,45 +169,68 @@ npm run dev
 
 | 接口 | 描述 |
 |------|------|
-| `GET /api/v1/export/csv` | CSV 导出 |
-| `GET /api/v1/export/excel` | Excel 导出 |
-| `POST /api/v1/export/pdf` | PDF 导出 |
+| `GET /api/v1/export/csv` | 导出 CSV |
+| `GET /api/v1/export/excel` | 导出 Excel |
+| `POST /api/v1/export/pdf` | 导出 PDF |
+
+## 数据更新说明
+
+- **自动更新**：后端服务默认每 6 小时自动采集一次新数据
+- **手动回填**：使用 `backend/run_graphql_backfill.js`
+- **重聚合**：使用 `backend/run_reaggregation.js`
+
+注意：
+
+- 首次启动后端时，当前实现会自动触发历史数据回填
+- 数据回填可能持续较长时间，取决于仓库数量与 GitHub API 限流情况
+- 在共享环境中操作缓存和回填脚本前，建议先确认影响范围
 
 ## 故障排查
 
-### 前端无数据显示
+### 前端没有数据显示
 
-1. **检查数据库是否有数据**：
-   ```bash
-   psql -d oss_dashboard -c "SELECT COUNT(*) FROM activity_snapshots;"
-   ```
+1. 检查数据库中是否已有聚合数据：
 
-2. **清除 Redis 缓存**：
-   ```bash
-   redis-cli FLUSHALL
-   ```
+```bash
+psql -d oss_dashboard -c "SELECT COUNT(*) FROM activity_snapshots;"
+```
 
-3. **硬刷新浏览器**：`Ctrl+Shift+R`
+2. 检查后端与 Redis 是否正常连接
+3. 硬刷新浏览器：`Ctrl+Shift+R`
 
 ### 贡献者数据为空
 
-1. 确认贡献者表已创建：
-   ```bash
-   psql -d oss_dashboard -c "\dt contributors"
-   ```
+1. 确认贡献者相关表已创建：
 
-2. 运行数据回填：
-   ```bash
-   node run_graphql_backfill.js 30
-   ```
+```bash
+psql -d oss_dashboard -c "\dt contributors"
+```
 
-### API 限流问题
+2. 运行回填脚本：
 
-如遇到 "Rate limit exceeded" 错误：
-- 等待 1 小时后重试
-- 或减少回填天数：`node run_graphql_backfill.js 7`
+```bash
+cd backend
+node run_graphql_backfill.js 30
+```
 
-## 数据更新机制
+### 遇到 GitHub API 限流
 
-- **自动更新**：后端服务每 6 小时自动采集新数据
-- **手动回填**：使用 `run_graphql_backfill.js` 脚本
+- 等待额度恢复后重试
+- 适当减少回填天数，例如：
+
+```bash
+cd backend
+node run_graphql_backfill.js 7
+```
+
+## 安全与配置
+
+- 不要提交任何密钥、Token、数据库密码或本地 `.env` 文件
+- 建议通过环境变量管理 `GITHUB_TOKEN`、数据库连接和 Redis 配置
+- 如果在服务器或共享环境中部署，请限制 Redis 和数据库访问范围
+- 运行回填、重聚合、导出等脚本前，建议先确认目标环境与数据影响范围
+
+## 备注
+
+- 当前 README 主要面向快速了解项目与本地启动
+- 更细的运行机制、数据链路和维护说明可以在后续单独拆分到专门文档
